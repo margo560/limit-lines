@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { clamp, level, rows, split } from './lines'
+import { bump, clamp, level, mcpRows, mcpServer, mcpTotal, rows, split } from './lines'
 
 test('thresholds', async () => {
   expect(level(10)).toBe('success')
@@ -79,5 +79,41 @@ test('/limits brings a hidden row back', async ($, on) => {
   await $.command.run({ command: 'limits' })
   expect(await ui.find({ type: 'Text', text: /context/ })).toBeDefined()
   expect(await ui.find({ key: 'hide' })).toBeDefined()
+  await ui.unmount()
+})
+
+test('mcp helpers count by server', async () => {
+  expect(mcpServer('mcp__rub__go')).toBe('rub')
+  expect(mcpServer('mcp__claude_ai_Figma__get_screen')).toBe('claude_ai_Figma')
+  expect(mcpServer('Read')).toBeUndefined()
+  const once = bump({}, 'mcp__rub__go')
+  expect(bump(once, 'Bash')).toBe(once)
+  const c = bump(bump(bump(once, 'mcp__rub__stop'), 'mcp__figma__x'), 'mcp__rub__go')
+  expect(mcpTotal(c)).toBe(4)
+  expect(mcpRows(c)).toEqual([['rub', 3], ['figma', 1]])
+})
+
+test('row counts mcp calls, ignoring other tools', async ($, on) => {
+  on('session.usage', () => ({ value: usage }))
+  on('tool.call', () => ({ result: 'ok' }))
+  const ui = await $.ui.mount(band())
+  expect(await ui.find({ type: 'Text', text: /mcp/ })).toBeUndefined()
+  await $.tool.call({ tool: 'mcp__rub__go', input: {} } as never)
+  await $.tool.call({ tool: 'mcp__rub__go', input: {} } as never)
+  await $.tool.call({ tool: 'Read', input: {} } as never)
+  expect((await ui.find({ type: 'Text', text: /mcp/ }))?.text).toContain('mcp 2 calls')
+  await ui.unmount()
+})
+
+test('pane lists mcp calls per server, busiest first', async ($, on) => {
+  on('session.usage', () => ({ value: usage }))
+  on('tool.call', () => ({ result: 'ok' }))
+  for (const tool of ['mcp__figma__x', 'mcp__rub__go', 'mcp__rub__stop']) await $.tool.call({ tool, input: {} } as never)
+  const ui = await $.ui.mount({
+    plugin: 'limit-lines', component: 'Pane', requestId: 'limit-lines', surface: 'terminal',
+    props: { title: 'Limits', isFocused: false, bodyColumns: 40, placement: 'dock', scroll: { offset: 0, bodyRows: 20 }, view: {} },
+  })
+  const lines = await ui.findAll({ type: 'Text', text: /^mcp /i })
+  expect(lines.map(l => l.text)).toEqual(['mcp rub: 2 calls', 'mcp figma: 1 call'])
   await ui.unmount()
 })

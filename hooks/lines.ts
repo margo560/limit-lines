@@ -38,3 +38,23 @@ export const rows = (u: {
   }
   return out
 }
+
+export type McpCounts = Record<string, number>
+
+/** The server of an `mcp__<server>__<tool>` name, or undefined for any other tool. */
+export const mcpServer = (tool: string): string | undefined => {
+  const m = /^mcp__(.+?)__.+$/.exec(tool)
+  return m ? m[1] : undefined
+}
+
+/** Counts one call to `tool`; a non-MCP tool leaves the counts as they were. */
+export const bump = (counts: McpCounts, tool: string): McpCounts => {
+  const s = mcpServer(tool)
+  return s ? { ...counts, [s]: (counts[s] ?? 0) + 1 } : counts
+}
+
+export const mcpTotal = (counts: McpCounts): number => Object.values(counts).reduce((a, b) => a + b, 0)
+
+/** Servers by call count, busiest first. */
+export const mcpRows = (counts: McpCounts): [string, number][] =>
+  Object.entries(counts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))

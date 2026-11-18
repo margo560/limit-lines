@@ -1,10 +1,12 @@
 import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
-import { clamp, level, rows, split } from './lines'
+import { bump, clamp, level, mcpRows, mcpTotal, rows, split } from './lines'
+import type { McpCounts } from './lines'
 
 const PANE = 'limit-lines'
 const stamp = atom({ plugin: 'limit-lines', key: 'stamp' } as const, 0)
+const mcp = atom({ plugin: 'limit-lines', key: 'mcp' } as const, {} as McpCounts)
 const isHidden = atom({ plugin: 'limit-lines', key: 'isHidden' } as const, false)
 
 export const register: Register = on => {
@@ -19,6 +21,13 @@ export const register: Register = on => {
     return { text: 'Limits pane opened.' }
   })
 
+  on('tool.call', async ($, e, next) => {
+    const counts = await read($, mcp)
+    const after = bump(counts, e.tool)
+    if (after !== counts) await update($, mcp, () => after)
+    return next(e)
+  })
+
   on('turn.complete', async ($, e, next) => {
     await update($, stamp, n => n + 1)
     return next(e)
@@ -29,6 +38,7 @@ export const register: Register = on => {
     if (e.props.hasSurvey || (await read($, isHidden))) return next(e)
     const { Box, Text, Button } = $.ui.resolve(e)
     const list = rows(await $.session.usage())
+    const calls = mcpTotal(await read($, mcp))
     return (
       <Box>
         {list.map(r => (
@@ -36,6 +46,7 @@ export const register: Register = on => {
             {r.name} {Math.round(clamp(r.percent))}%{'  '}
           </Text>
         ))}
+        {calls > 0 && <Text key="mcp" dimColor>mcp {calls} calls{'  '}</Text>}
         <Button key="hide" label="Hide" onPress={() => update($, isHidden, () => true)} />
       </Box>
     )
@@ -45,6 +56,7 @@ export const register: Register = on => {
     await read($, stamp)
     const { Box, Text } = $.ui.resolve(e)
     const u = await $.session.usage()
+    const servers = await read($, mcp)
     const width = Math.max(10, Math.min(40, (e.props.bodyColumns ?? 40) - 24))
     return (
       <Box flexDirection="column">
@@ -62,6 +74,9 @@ export const register: Register = on => {
             </Box>
           )
         })}
+        {mcpRows(servers).map(([name, n]) => (
+          <Text key={`mcp-${name}`} dimColor>mcp {name}: {n} {n === 1 ? 'call' : 'calls'}</Text>
+        ))}
         {u.rateLimits.length === 0 && <Text dimColor>No rate-limit windows reported (not a subscription).</Text>}
         {u.cost && <Text dimColor>cost ≈ ${u.cost.usd.toFixed(2)} (estimate)</Text>}
       </Box>
