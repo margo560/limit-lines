@@ -82,6 +82,19 @@ test('/limits brings a hidden row back', async ($, on) => {
   await ui.unmount()
 })
 
+test('/limits-hide closes the pane and hides the row', async ($, on) => {
+  on('session.usage', () => ({ value: usage }))
+  on('ui.open', () => ({ value: { isPlaced: true } }))
+  const closed: string[] = []
+  on('ui.close', (_$, e) => { closed.push((e as { id: string }).id); return { value: {} } })
+  const ui = await $.ui.mount(band())
+  expect(await ui.find({ type: 'Text', text: /context/ })).toBeDefined()
+  await $.command.run({ command: 'limits-hide' })
+  expect(closed).toContain('limit-lines')
+  expect(await ui.find({ type: 'Text', text: /context/ })).toBeUndefined()
+  await ui.unmount()
+})
+
 test('mcp helpers count by server', async () => {
   expect(mcpServer('mcp__rub__go')).toBe('rub')
   expect(mcpServer('mcp__claude_ai_Figma__get_screen')).toBe('claude_ai_Figma')

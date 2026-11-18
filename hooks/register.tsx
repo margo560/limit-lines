@@ -12,6 +12,7 @@ const isHidden = atom({ plugin: 'limit-lines', key: 'isHidden' } as const, false
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({ name: 'limits', description: 'Open the limit lines pane (context, rate limits, cost)' })
+    await $.command.register({ name: 'limits-hide', description: 'Close the limit lines pane and hide the prompt row' })
     return next(e)
   })
 
@@ -19,6 +20,12 @@ export const register: Register = on => {
     await update($, isHidden, () => false)
     await $.ui.open({ id: PANE, title: 'Limits' })
     return { text: 'Limits pane opened.' }
+  })
+
+  on('command.run', { command: 'limits-hide' }, async $ => {
+    await $.ui.close({ id: PANE })
+    await update($, isHidden, () => true)
+    return { text: 'Limits pane closed and row hidden. /limits brings them back.' }
   })
 
   on('tool.call', async ($, e, next) => {
