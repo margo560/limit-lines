@@ -1,1 +1,20 @@
-{ "name": "limit-lines", "version": "0.1.0", "types": "./types/index.d.ts", "description": "Lines showing context fill, rate limits and cost estimate above the prompt and in a pane" }
+{
+  "name": "limit-lines",
+  "version": "0.1.0",
+  "types": "./types/index.d.ts",
+  "description": "Lines showing context fill, rate limits and cost estimate above the prompt and in a pane",
+  "userConfig": {
+    "warnAt": {
+      "type": "number",
+      "title": "Yellow from (%)",
+      "description": "A line turns yellow at or above this percentage.",
+      "default": 70
+    },
+    "errorAt": {
+      "type": "number",
+      "title": "Red from (%)",
+      "description": "A line turns red at or above this percentage.",
+      "default": 90
+    }
+  }
+}

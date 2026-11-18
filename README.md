@@ -14,7 +14,7 @@ A Claude Code mod that draws usage as lines. It needs no setup: the data comes f
 
 `/limits` also brings the row back after you hid it.
 
-Colours follow the theme: green below 70%, yellow from 70 to 89%, red from 90%.
+Colours follow the theme: green below 70%, yellow from 70 to 89%, red from 90%. Change the cutoffs with the plugin options `warnAt` and `errorAt` (in `/config`, or `pluginConfigs` in settings.json). Red never starts below yellow, and a bad value falls back to its default.
 
 ## Try it
 

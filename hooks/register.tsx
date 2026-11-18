@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
-import { bump, clamp, level, mcpRows, mcpTotal, rows, split } from './lines'
+import { bump, clamp, level, mcpRows, mcpTotal, rows, split, thresholds } from './lines'
 import type { McpCounts } from './lines'
 
 const PANE = 'limit-lines'
@@ -21,7 +21,8 @@ const setHidden = async ($: Parameters<typeof read>[0], value: boolean) => {
   await $.store.set(STORE_KEY, value)
 }
 
-export const register: Register = on => {
+export const register: Register = (on, options) => {
+  const t = thresholds(options)
   on('session.start', async ($, e, next) => {
     await $.command.register({ name: 'limits', description: 'Open the limit lines pane (context, rate limits, cost)' })
     await $.command.register({ name: 'limits-hide', description: 'Close the limit lines pane and hide the prompt row' })
@@ -61,7 +62,7 @@ export const register: Register = on => {
     return (
       <Box>
         {list.map(r => (
-          <Text key={r.name} color={level(r.percent)}>
+          <Text key={r.name} color={level(r.percent, t)}>
             {r.name} {Math.round(clamp(r.percent))}%{'  '}
           </Text>
         ))}
@@ -84,10 +85,10 @@ export const register: Register = on => {
           return (
             <Box key={r.name} flexDirection="column">
               <Text>
-                {r.name} <Text color={level(r.percent)}>{Math.round(clamp(r.percent))}%</Text>
+                {r.name} <Text color={level(r.percent, t)}>{Math.round(clamp(r.percent))}%</Text>
               </Text>
               <Text>
-                <Text color={level(r.percent)}>{'█'.repeat(on_)}</Text>
+                <Text color={level(r.percent, t)}>{'█'.repeat(on_)}</Text>
                 <Text dimColor>{'░'.repeat(off)}</Text> {r.note}
               </Text>
             </Box>

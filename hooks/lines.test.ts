@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { bump, clamp, level, mcpRows, mcpServer, mcpTotal, rows, split } from './lines'
+import { bump, clamp, level, mcpRows, mcpServer, mcpTotal, rows, split, thresholds } from './lines'
 
 /** An in-memory plugin store: answers store.get/set and hands back its map, since the test's `$` has no `$.store`. */
 const memStore = (on: Parameters<Parameters<typeof test>[1]>[1], init: Record<string, unknown> = {}) => {
@@ -28,6 +28,17 @@ test('boundaries', async () => {
   expect(split(99.6, 10)).toEqual([9, 1])
   const r = rows({ context: { tokens: 0, window: 100 }, rateLimits: [{ kind: 'seven_day', percentUsed: 120 }] })
   expect(r[1]?.note).toBe('0% left')
+})
+
+test('thresholds come from options, with safe fallbacks', async () => {
+  expect(thresholds()).toEqual({ warn: 70, error: 90 })
+  expect(thresholds({ warnAt: 50, errorAt: 80 })).toEqual({ warn: 50, error: 80 })
+  expect(thresholds({ warnAt: 'x', errorAt: NaN })).toEqual({ warn: 70, error: 90 })
+  expect(thresholds({ warnAt: 95, errorAt: 80 })).toEqual({ warn: 95, error: 95 })
+  const t = thresholds({ warnAt: 50, errorAt: 80 })
+  expect(level(49, t)).toBe('success')
+  expect(level(50, t)).toBe('warning')
+  expect(level(80, t)).toBe('error')
 })
 
 test('pane draws the lines', async ($, on) => {
@@ -167,5 +178,15 @@ test('pane lists mcp calls per server, busiest first', async ($, on) => {
   })
   const lines = await ui.findAll({ type: 'Text', text: /^mcp /i })
   expect(lines.map(l => l.text)).toEqual(['mcp rub: 2 calls', 'mcp figma: 1 call'])
+  await ui.unmount()
+})
+
+test('row colours follow the configured thresholds', { options: { warnAt: 20, errorAt: 50 } }, async ($, on) => {
+  memStore(on)
+  on('session.usage', () => ({ value: usage }))
+  const ui = await $.ui.mount(band())
+  const colour = async (text: RegExp) => ((await ui.find({ type: 'Text', text })) as { props?: { color?: string } } | undefined)?.props?.color
+  expect(await colour(/context/)).toBe('warning')
+  expect(await colour(/5h limit/)).toBe('error')
   await ui.unmount()
 })

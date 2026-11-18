@@ -1,11 +1,22 @@
 export type Level = 'success' | 'warning' | 'error'
 
-/** Colour by how full the line is: green below 70, yellow 70-89, red 90+. */
-export const level = (percent: number): Level =>
-  percent >= 90 ? 'error' : percent >= 70 ? 'warning' : 'success'
-
 export const clamp = (percent: number): number =>
   Number.isFinite(percent) ? Math.min(100, Math.max(0, percent)) : 0
+
+export type Thresholds = { warn: number; error: number }
+
+export const DEFAULT_THRESHOLDS: Thresholds = { warn: 70, error: 90 }
+
+/** Thresholds from the plugin's options (`warnAt`, `errorAt`). A bad value falls back to its default; red never starts below yellow. */
+export const thresholds = (options: Readonly<Record<string, unknown>> = {}): Thresholds => {
+  const pick = (v: unknown, fallback: number) => (typeof v === 'number' && Number.isFinite(v) ? clamp(v) : fallback)
+  const warn = pick(options.warnAt, DEFAULT_THRESHOLDS.warn)
+  return { warn, error: Math.max(warn, pick(options.errorAt, DEFAULT_THRESHOLDS.error)) }
+}
+
+/** Colour by how full the line is: green below `warn`, yellow from `warn`, red from `error` (default 70 and 90). */
+export const level = (percent: number, t: Thresholds = DEFAULT_THRESHOLDS): Level =>
+  percent >= t.error ? 'error' : percent >= t.warn ? 'warning' : 'success'
 
 /** A bar of `width` cells: filled part and empty part. */
 export const split = (percent: number, width: number): [number, number] => {
