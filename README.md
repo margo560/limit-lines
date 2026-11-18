@@ -30,7 +30,7 @@ The mod is loaded for that session only. Run `/limits` to open the pane.
 
 - MCP counts come from a `tool.call` hook, so they cover only calls made while the mod is loaded, and they include calls that were denied or failed.
 - Rate-limit windows appear only on a subscription. Without one, the pane says so.
-- Hide state and MCP counts last for the session.
+- The hidden row is remembered between sessions. MCP counts last for the session.
 
 ## Develop
 

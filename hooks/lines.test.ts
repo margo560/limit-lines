@@ -1,6 +1,14 @@
 import { expect, test } from 'claude-code/testing'
 import { bump, clamp, level, mcpRows, mcpServer, mcpTotal, rows, split } from './lines'
 
+/** An in-memory plugin store: answers store.get/set and hands back its map, since the test's `$` has no `$.store`. */
+const memStore = (on: Parameters<Parameters<typeof test>[1]>[1], init: Record<string, unknown> = {}) => {
+  const data = new Map<string, unknown>(Object.entries(init))
+  on('store.get', (_$, e) => ({ value: data.get((e as { key: string }).key) }))
+  on('store.set', (_$, e) => { const x = e as { key: string; value: unknown }; data.set(x.key, x.value); return { value: undefined } })
+  return data
+}
+
 test('thresholds', async () => {
   expect(level(10)).toBe('success')
   expect(level(70)).toBe('warning')
@@ -23,6 +31,7 @@ test('boundaries', async () => {
 })
 
 test('pane draws the lines', async ($, on) => {
+  const store = memStore(on)
   on('session.usage', () => ({
     value: { startedAt: 0, context: { tokens: 180000, window: 200000, percent: 90 }, rateLimits: [{ kind: 'five_hour', percentUsed: 30 }], cost: { usd: 1.5 } },
   }))
@@ -45,6 +54,7 @@ const band = (hasSurvey = false) => ({
 })
 
 test('prompt row shows each line as a percentage', async ($, on) => {
+  const store = memStore(on)
   on('session.usage', () => ({ value: usage }))
   const ui = await $.ui.mount(band())
   expect((await ui.find({ type: 'Text', text: /context/ }))?.text).toContain('25%')
@@ -55,6 +65,7 @@ test('prompt row shows each line as a percentage', async ($, on) => {
 })
 
 test('hide button removes the row', async ($, on) => {
+  const store = memStore(on)
   on('session.usage', () => ({ value: usage }))
   const ui = await $.ui.mount(band())
   await ui.press({ key: 'hide' })
@@ -64,6 +75,7 @@ test('hide button removes the row', async ($, on) => {
 })
 
 test('row yields to a survey', async ($, on) => {
+  const store = memStore(on)
   on('session.usage', () => ({ value: usage }))
   const ui = await $.ui.mount(band(true))
   expect(await ui.find({ type: 'Text', text: /context/ })).toBeUndefined()
@@ -71,6 +83,7 @@ test('row yields to a survey', async ($, on) => {
 })
 
 test('/limits brings a hidden row back', async ($, on) => {
+  const store = memStore(on)
   on('session.usage', () => ({ value: usage }))
   on('ui.open', () => ({ value: { isPlaced: true } }))
   const ui = await $.ui.mount(band())
@@ -83,6 +96,7 @@ test('/limits brings a hidden row back', async ($, on) => {
 })
 
 test('/limits-hide closes the pane and hides the row', async ($, on) => {
+  const store = memStore(on)
   on('session.usage', () => ({ value: usage }))
   on('ui.open', () => ({ value: { isPlaced: true } }))
   const closed: string[] = []
@@ -92,6 +106,29 @@ test('/limits-hide closes the pane and hides the row', async ($, on) => {
   await $.command.run({ command: 'limits-hide' })
   expect(closed).toContain('limit-lines')
   expect(await ui.find({ type: 'Text', text: /context/ })).toBeUndefined()
+  expect(store.get('isHidden')).toBe(true)
+  await ui.unmount()
+})
+
+test('hide state is saved to the store and cleared by /limits', async ($, on) => {
+  const store = memStore(on)
+  on('session.usage', () => ({ value: usage }))
+  on('ui.open', () => ({ value: { isPlaced: true } }))
+  const ui = await $.ui.mount(band())
+  expect(store.get('isHidden')).toBeUndefined()
+  await ui.press({ key: 'hide' })
+  expect(store.get('isHidden')).toBe(true)
+  await $.command.run({ command: 'limits' })
+  expect(store.get('isHidden')).toBe(false)
+  await ui.unmount()
+})
+
+test('a row hidden in an earlier session stays hidden', async ($, on) => {
+  const store = memStore(on, { isHidden: true })
+  on('session.usage', () => ({ value: usage }))
+  const ui = await $.ui.mount(band())
+  expect(await ui.find({ type: 'Text', text: /context/ })).toBeUndefined()
+  expect(await ui.find({ key: 'hide' })).toBeUndefined()
   await ui.unmount()
 })
 
@@ -107,6 +144,7 @@ test('mcp helpers count by server', async () => {
 })
 
 test('row counts mcp calls, ignoring other tools', async ($, on) => {
+  const store = memStore(on)
   on('session.usage', () => ({ value: usage }))
   on('tool.call', () => ({ result: 'ok' }))
   const ui = await $.ui.mount(band())
@@ -119,6 +157,7 @@ test('row counts mcp calls, ignoring other tools', async ($, on) => {
 })
 
 test('pane lists mcp calls per server, busiest first', async ($, on) => {
+  const store = memStore(on)
   on('session.usage', () => ({ value: usage }))
   on('tool.call', () => ({ result: 'ok' }))
   for (const tool of ['mcp__figma__x', 'mcp__rub__go', 'mcp__rub__stop']) await $.tool.call({ tool, input: {} } as never)

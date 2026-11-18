@@ -7,7 +7,19 @@ import type { McpCounts } from './lines'
 const PANE = 'limit-lines'
 const stamp = atom({ plugin: 'limit-lines', key: 'stamp' } as const, 0)
 const mcp = atom({ plugin: 'limit-lines', key: 'mcp' } as const, {} as McpCounts)
-const isHidden = atom({ plugin: 'limit-lines', key: 'isHidden' } as const, false)
+// null = not decided yet this session: fall back to what the plugin store remembers.
+const isHidden = atom({ plugin: 'limit-lines', key: 'isHidden' } as const, null as boolean | null)
+const STORE_KEY = 'isHidden'
+
+const hiddenNow = async ($: Parameters<typeof read>[0]): Promise<boolean> => {
+  const v = await read($, isHidden)
+  return v ?? (await $.store.get(STORE_KEY)) === true
+}
+
+const setHidden = async ($: Parameters<typeof read>[0], value: boolean) => {
+  await update($, isHidden, () => value)
+  await $.store.set(STORE_KEY, value)
+}
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
@@ -17,14 +29,14 @@ export const register: Register = on => {
   })
 
   on('command.run', { command: 'limits' }, async $ => {
-    await update($, isHidden, () => false)
+    await setHidden($, false)
     await $.ui.open({ id: PANE, title: 'Limits' })
     return { text: 'Limits pane opened.' }
   })
 
   on('command.run', { command: 'limits-hide' }, async $ => {
     await $.ui.close({ id: PANE })
-    await update($, isHidden, () => true)
+    await setHidden($, true)
     return { text: 'Limits pane closed and row hidden. /limits brings them back.' }
   })
 
@@ -42,7 +54,7 @@ export const register: Register = on => {
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     await read($, stamp)
-    if (e.props.hasSurvey || (await read($, isHidden))) return next(e)
+    if (e.props.hasSurvey || (await hiddenNow($))) return next(e)
     const { Box, Text, Button } = $.ui.resolve(e)
     const list = rows(await $.session.usage())
     const calls = mcpTotal(await read($, mcp))
@@ -54,7 +66,7 @@ export const register: Register = on => {
           </Text>
         ))}
         {calls > 0 && <Text key="mcp" dimColor>mcp {calls} calls{'  '}</Text>}
-        <Button key="hide" label="Hide" onPress={() => update($, isHidden, () => true)} />
+        <Button key="hide" label="Hide" onPress={() => setHidden($, true)} />
       </Box>
     )
   })
