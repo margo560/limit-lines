@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import { bump, clamp, level, mcpRows, mcpTotal, rows, split, thresholds } from './lines'
+import { SNAPSHOT_FILE, bump, clamp, level, mcpRows, mcpTotal, rows, snapshot, split, thresholds } from './lines'
 import type { McpCounts } from './lines'
 
 const PANE = 'limit-lines'
@@ -19,6 +19,18 @@ const hiddenNow = async ($: EngineInterface): Promise<boolean> => {
 const setHidden = async ($: EngineInterface, value: boolean) => {
   await update($, isHidden, () => value)
   await $.store.set(STORE_KEY, value)
+}
+
+/** Saves the current lines to %LOCALAPPDATA% for the desktop widget. Never lets a failed write disturb the session. */
+const writeSnapshot = async ($: EngineInterface, t: ReturnType<typeof thresholds>) => {
+  try {
+    const dir = await $.env.get('LOCALAPPDATA')
+    if (!dir) return
+    const body = snapshot(await $.session.usage(), await read($, mcp), new Date(), t)
+    await $.fs.write(`${dir}\\${SNAPSHOT_FILE}`, JSON.stringify(body, null, 2))
+  } catch {
+    // The widget is optional; a missing folder or a denied write is not an error here.
+  }
 }
 
 export const register: Register = (on, options) => {
@@ -50,6 +62,7 @@ export const register: Register = (on, options) => {
 
   on('turn.complete', async ($, e, next) => {
     await update($, stamp, n => n + 1)
+    await writeSnapshot($, t)
     return next(e)
   })
 

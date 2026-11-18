@@ -39,6 +39,7 @@ Requirements: a Claude Code version with mod support (the `claude plugin test` c
 - MCP counts come from a `tool.call` hook, so they cover only calls made while the mod is loaded, and they include calls that were denied or failed.
 - Rate-limit windows appear only on a subscription. Without one, the pane says so.
 - The hidden row is remembered between sessions. MCP counts last for the session.
+- After each turn the mod writes the current lines to `%LOCALAPPDATA%\limit-lines-usage.json` (version, timestamp, each line's percent and colour level, cost, MCP counts) so other programs, such as a desktop widget, can read them. If the write is refused or the variable is missing, the mod carries on without it.
 
 ## Develop
 

@@ -1,6 +1,6 @@
 import type { On } from 'claude-code'
 import { expect, test } from 'claude-code/testing'
-import { bump, clamp, level, mcpRows, mcpServer, mcpTotal, rows, split, thresholds } from './lines'
+import { bump, clamp, level, mcpRows, mcpServer, mcpTotal, rows, snapshot, split, thresholds } from './lines'
 
 /** An in-memory plugin store: answers store.get/set and hands back its map, since the test's `$` has no `$.store`. */
 const memStore = (on: On, init: Record<string, unknown> = {}) => {
@@ -190,4 +190,37 @@ test('row colours follow the configured thresholds', { options: { warnAt: 20, er
   expect(await colour(/context/)).toBe('warning')
   expect(await colour(/5h limit/)).toBe('error')
   await ui.unmount()
+})
+
+test('snapshot has a stable shape for other programs', async () => {
+  const snap = snapshot({ ...usage, cost: { usd: 1.5 } }, { rub: 2 }, new Date('2026-01-02T03:04:05Z'))
+  expect(snap.version).toBe(1)
+  expect(snap.updatedAt).toBe('2026-01-02T03:04:05.000Z')
+  expect(snap.cost).toBe(1.5)
+  expect(snap.mcp).toEqual({ rub: 2 })
+  expect(snap.rows.map(r => [r.name, r.percent, r.level])).toEqual([
+    ['context', 25, 'success'], ['5h limit', 75, 'warning'], ['7d limit', 95, 'error'],
+  ])
+  expect('cost' in snapshot(usage, {}, new Date(0))).toBe(false)
+})
+
+test('a finished turn writes the snapshot file', async ($, on) => {
+  memStore(on)
+  on('session.usage', () => ({ value: usage }))
+  on('env.get', () => ({ value: 'C:\\Local' }))
+  const written: { path: string; text: string }[] = []
+  on('fs.write', (_$, e) => { written.push(e as { path: string; text: string }); return { value: undefined } })
+  on('turn.complete', (_$, e) => ({ text: e.answer }))
+  await $.turn.complete({ answer: '', durationMs: 1, isAborted: false, turnId: 't1', reason: 'end_turn' } as never)
+  expect(written[0]?.path).toBe('C:\\Local\\limit-lines-usage.json')
+  expect(JSON.parse(written[0]?.text ?? '{}').rows[0].name).toBe('context')
+})
+
+test('a failed snapshot write does not break the turn', async ($, on) => {
+  memStore(on)
+  on('session.usage', () => ({ value: usage }))
+  on('env.get', () => ({ value: 'C:\\Local' }))
+  on('fs.write', () => { throw new Error('denied') })
+  on('turn.complete', (_$, e) => ({ text: e.answer }))
+  await $.turn.complete({ answer: '', durationMs: 1, isAborted: false, turnId: 't1', reason: 'end_turn' } as never)
 })

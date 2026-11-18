@@ -52,6 +52,30 @@ export const rows = (u: {
 
 export type McpCounts = Record<string, number>
 
+export const SNAPSHOT_FILE = 'limit-lines-usage.json'
+
+export type Snapshot = {
+  version: 1
+  updatedAt: string
+  rows: (Row & { level: Level })[]
+  cost?: number
+  mcp: McpCounts
+}
+
+/** What the mod writes for other programs (the desktop widget and others) to read. */
+export const snapshot = (
+  u: Parameters<typeof rows>[0] & { cost?: { usd: number } },
+  counts: McpCounts,
+  now: Date,
+  t: Thresholds = DEFAULT_THRESHOLDS,
+): Snapshot => ({
+  version: 1,
+  updatedAt: now.toISOString(),
+  rows: rows(u).map(r => ({ ...r, percent: clamp(r.percent), level: level(r.percent, t) })),
+  ...(u.cost ? { cost: u.cost.usd } : {}),
+  mcp: counts,
+})
+
 /** The server of an `mcp__<server>__<tool>` name, or undefined for any other tool. */
 export const mcpServer = (tool: string): string | undefined => {
   const m = /^mcp__(.+?)__.+$/.exec(tool)
