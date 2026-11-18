@@ -1,6 +1,6 @@
 {
   "name": "limit-lines",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "types": "./types/index.d.ts",
   "description": "Lines showing context fill, rate limits and cost estimate above the prompt and in a pane",
   "userConfig": {
