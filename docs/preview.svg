@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="330" viewBox="0 0 640 330" font-family="Consolas, 'Courier New', monospace" font-size="15">
+  <title>limit-lines: the prompt row and the /limits pane (illustration)</title>
+  <rect width="640" height="330" rx="8" fill="#1e1e2e"/>
+  <text x="20" y="30" fill="#6c7086">Prompt row</text>
+  <text x="20" y="56">
+    <tspan fill="#a6e3a1">context 25%</tspan><tspan fill="#cdd6f4">  </tspan><tspan fill="#f9e2af">5h limit 75%</tspan><tspan fill="#cdd6f4">  </tspan><tspan fill="#f38ba8">7d limit 95%</tspan><tspan fill="#cdd6f4">  </tspan><tspan fill="#6c7086">mcp 3 calls</tspan><tspan fill="#cdd6f4">  </tspan><tspan fill="#9399b2">[Hide]</tspan>
+  </text>
+  <line x1="20" y1="76" x2="620" y2="76" stroke="#45475a"/>
+  <text x="20" y="102" fill="#6c7086">/limits pane</text>
+  <text x="20" y="128" fill="#cdd6f4">context <tspan fill="#a6e3a1">25%</tspan></text>
+  <text x="20" y="148"><tspan fill="#a6e3a1">█████</tspan><tspan fill="#45475a">███████████████</tspan><tspan fill="#6c7086"> 50k/200k · 150k left</tspan></text>
+  <text x="20" y="178" fill="#cdd6f4">5h limit <tspan fill="#f9e2af">75%</tspan></text>
+  <text x="20" y="198"><tspan fill="#f9e2af">███████████████</tspan><tspan fill="#45475a">█████</tspan><tspan fill="#6c7086"> 25% left</tspan></text>
+  <text x="20" y="228" fill="#cdd6f4">7d limit <tspan fill="#f38ba8">95%</tspan></text>
+  <text x="20" y="248"><tspan fill="#f38ba8">███████████████████</tspan><tspan fill="#45475a">█</tspan><tspan fill="#6c7086"> 5% left</tspan></text>
+  <text x="20" y="278" fill="#6c7086">mcp figma: 2 calls</text>
+  <text x="20" y="298" fill="#6c7086">mcp rub: 1 call</text>
+  <text x="20" y="318" fill="#6c7086">cost ≈ $1.50 (estimate)</text>
+</svg>

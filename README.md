@@ -2,6 +2,10 @@
 
 A Claude Code mod that draws usage as lines. It needs no setup: the data comes from `$.session.usage()` and from the tool calls the session makes.
 
+![The prompt row and the /limits pane](docs/preview.svg)
+
+*Illustration of the layout, not a captured screenshot.*
+
 ## What you get
 
 **A row above the prompt.** Context fill and the account's rate-limit windows (5h, 7d) show as coloured percentages, followed by a dim `mcp N calls` item once an MCP tool has been called. A `Hide` button removes the row. The row steps aside while a survey is showing.
@@ -16,15 +20,19 @@ A Claude Code mod that draws usage as lines. It needs no setup: the data comes f
 
 Colours follow the theme: green below 70%, yellow from 70 to 89%, red from 90%. Change the cutoffs with the plugin options `warnAt` and `errorAt` (in `/config`, or `pluginConfigs` in settings.json). Red never starts below yellow, and a bad value falls back to its default.
 
-## Try it
+## Install
 
-From this folder:
+Clone the repo, then start Claude Code with the folder as a plugin directory:
 
 ```
+git clone https://github.com/margo560/limit-lines.git
+cd limit-lines
 claude --plugin-dir .
 ```
 
-The mod is loaded for that session only. Run `/limits` to open the pane.
+The mod is loaded for that session only. To use it every time, pass the same `--plugin-dir` path whenever you start `claude` (for example from a shell alias). Run `/limits` to open the pane.
+
+Requirements: a Claude Code version with mod support (the `claude plugin test` command and `$.session.usage()`). Rate-limit windows need a subscription.
 
 ## Things to know
 
