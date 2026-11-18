@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { Register } from 'claude-code'
+import type { EngineInterface, Register } from 'claude-code'
 
 import { bump, clamp, level, mcpRows, mcpTotal, rows, split, thresholds } from './lines'
 import type { McpCounts } from './lines'
@@ -11,12 +11,12 @@ const mcp = atom({ plugin: 'limit-lines', key: 'mcp' } as const, {} as McpCounts
 const isHidden = atom({ plugin: 'limit-lines', key: 'isHidden' } as const, null as boolean | null)
 const STORE_KEY = 'isHidden'
 
-const hiddenNow = async ($: Parameters<typeof read>[0]): Promise<boolean> => {
+const hiddenNow = async ($: EngineInterface): Promise<boolean> => {
   const v = await read($, isHidden)
   return v ?? (await $.store.get(STORE_KEY)) === true
 }
 
-const setHidden = async ($: Parameters<typeof read>[0], value: boolean) => {
+const setHidden = async ($: EngineInterface, value: boolean) => {
   await update($, isHidden, () => value)
   await $.store.set(STORE_KEY, value)
 }

@@ -1,8 +1,9 @@
+import type { On } from 'claude-code'
 import { expect, test } from 'claude-code/testing'
 import { bump, clamp, level, mcpRows, mcpServer, mcpTotal, rows, split, thresholds } from './lines'
 
 /** An in-memory plugin store: answers store.get/set and hands back its map, since the test's `$` has no `$.store`. */
-const memStore = (on: Parameters<Parameters<typeof test>[1]>[1], init: Record<string, unknown> = {}) => {
+const memStore = (on: On, init: Record<string, unknown> = {}) => {
   const data = new Map<string, unknown>(Object.entries(init))
   on('store.get', (_$, e) => ({ value: data.get((e as { key: string }).key) }))
   on('store.set', (_$, e) => { const x = e as { key: string; value: unknown }; data.set(x.key, x.value); return { value: undefined } })
